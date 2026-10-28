@@ -1,0 +1,11 @@
+fastapi==0.149.0
+faster-whisper==1.2.1
+imageio-ffmpeg==0.6.0
+numpy==2.2.6
+PyJWT==2.15.1
+requests==2.34.2
+safetensors==0.8.0
+sentence-transformers==6.2.0
+transformers==5.20.2
+uvicorn==0.54.0
+yt-dlp==2026.10.21

@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Видео-Лекции: Платформа Семантического Анализа</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --bg-color: #f8fafc; --card-bg: #ffffff; --text-color: #1e293b; --text-muted: #64748b;
+    --border-color: #e2e8f0; --input-bg: #ffffff; --input-border: #cbd5e1;
+    --primary-btn: #2563eb; --primary-btn-hover: #1d4ed8; --toggle-btn-bg: #e2e8f0;
+    --toggle-btn-text: #334155; --summary-bg: #f0fdf4; --summary-border: #bbf7d0; --summary-text: #1e293b;
+  }
+  [data-theme="dark"] {
+    --bg-color: #0f172a; --card-bg: #1e293b; --text-color: #f8fafc; --text-muted: #94a3b8;
+    --border-color: #334155; --input-bg: #0f172a; --input-border: #475569;
+    --primary-btn: #3b82f6; --primary-btn-hover: #2563eb; --toggle-btn-bg: #334155;
+    --toggle-btn-text: #f8fafc; --summary-bg: #064e3b; --summary-border: #059669; --summary-text: #ecfdf5;
+  }
+  body { font-family: system-ui, sans-serif; max-width: 1000px; margin: 30px auto; padding: 0 16px; color: var(--text-color); background: var(--bg-color); transition: background 0.3s, color 0.3s; }
+  h1 { font-size: 24px; color: var(--text-color); }
+  h3 { margin: 0 0 10px; font-size: 16px; color: var(--text-color); }
+  .card { border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; background: var(--card-bg); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  input[type=text], input[type=password], input[type=file] { width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); border-radius: 8px; box-sizing: border-box; font-size: 14px; margin-bottom: 10px; background: var(--input-bg); color: var(--text-color); }
+  button { padding: 10px 16px; border: none; border-radius: 8px; background: var(--primary-btn); color: white; cursor: pointer; font-size: 14px; transition: background 0.2s;}
+  button:hover { background: var(--primary-btn-hover); }
+  button:disabled { background: #94a3b8; cursor: wait; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { border-bottom: 1px solid var(--border-color); padding: 15px; font-size: 14px; border-radius: 8px; }
+  li:last-child { border-bottom: none; }
+  .highlight { background-color: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; }
+  .muted { color: var(--text-muted); font-size: 12px; }
+  .msg { font-size: 13px; margin-top: 8px; white-space: pre-wrap; font-weight: 500; }
+  .text-box { background: var(--bg-color); padding: 12px; border-radius: 8px; margin-top: 8px; border: 1px solid var(--border-color); line-height: 1.5; display: none; max-height: 250px; overflow-y: auto; color: var(--text-color); }
+  .summary-box { background: var(--summary-bg); border: 1px solid var(--summary-border); padding: 16px; border-radius: 8px; margin-top: 8px; line-height: 1.6; display: none; font-size: 14px; color: var(--summary-text); }
+  .summary-box h1, .summary-box h2, .summary-box h3 { color: inherit; }
+  .status-loader { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--input-border); border-top: 2px solid currentColor; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px; vertical-align: middle; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  
+  .search-result { border-left: 4px solid #8b5cf6; background: rgba(139, 92, 246, 0.1); padding: 12px; margin-bottom: 12px; border-radius: 0 8px 8px 0; color: var(--text-color); }
+  .badge-group { float: right; display: flex; gap: 6px; align-items: center; }
+  .score-badge { font-size: 11px; background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 10px; }
+  .time-badge { font-size: 11px; background: #0284c7; color: white; padding: 2px 6px; border-radius: 10px; text-decoration: none; cursor: pointer; border: none; }
+  .time-badge:hover { background: #0369a1; }
+  
+  .video-item-flex { display: flex; gap: 14px; align-items: flex-start; }
+  .video-thumb { width: 130px; height: 74px; object-fit: cover; border-radius: 8px; background: var(--border-color); flex-shrink: 0; border: 1px solid var(--input-border); }
+  .action-buttons { display: flex; gap: 8px; margin-top: 8px; align-items: center; flex-wrap: wrap; }
+  .toggle-btn { background: var(--toggle-btn-bg); color: var(--toggle-btn-text); padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; border: none; }
+  .summary-btn { background: #059669; color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; border: none; }
+  .play-btn { background: #2563eb; color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; border: none; }
+  .delete-btn { background: #fee2e2; color: #991b1b; padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; border: none; }
+
+  .popup-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+  .popup-box { background: var(--card-bg); border: 1px solid var(--border-color); padding: 24px; border-radius: 12px; width: 100%; max-width: 380px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; }
+  
+  #authScreen { max-width: 400px; margin: 80px auto; }
+  .auth-tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); }
+  .auth-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: 600; color: var(--text-muted); }
+  .auth-tab.active { border-bottom: 2px solid var(--primary-btn); color: var(--primary-btn); }
+
+  .admin-layout { display: flex; gap: 20px; }
+  .admin-sidebar { width: 220px; display: flex; flex-direction: column; gap: 8px; }
+  .admin-content { flex: 1; min-height: 400px; }
+  .sidebar-btn { text-align: left; background: var(--toggle-btn-bg); color: var(--toggle-btn-text); padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; }
+  .sidebar-btn.active { background: var(--primary-btn); color: white; }
+
+  .user-card-layout { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border: 1px solid var(--border-color); padding: 16px; border-radius: 10px; margin-bottom: 12px; }
+  .user-info-box { display: flex; gap: 15px; align-items: center; width: 75%; }
+  .u-field { background: var(--bg-color); border: 1px solid var(--input-border); padding: 8px 14px; border-radius: 6px; font-size: 14px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-color); }
+  .block-btn { background: #dc2626; color: white; font-weight: 600; border: none; outline: none; padding: 9px 16px; border-radius: 6px; cursor: pointer; }
+
+  .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+  .theme-toggle-btn { background: var(--toggle-btn-bg); color: var(--toggle-btn-text); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 13px; margin-right: 10px; cursor: pointer; }
+  
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 15px; }
+  .filter-btn { background: var(--toggle-btn-bg); color: var(--toggle-btn-text); padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; border: none; }
+  .filter-btn.active { background: var(--primary-btn); color: white; }
+
+  /* Стили для видеоплеера */
+  #playerContainer { display: none; position: sticky; top: 0; z-index: 100; background: var(--bg-color); padding: 10px 0; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+  #mainPlayer { width: 100%; max-height: 500px; border-radius: 12px; background: #000; outline: none; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+</style>
+</head>
+<body>
+
+<div style="position: absolute; top: 15px; right: 20px;">
+  <button class="theme-toggle-btn" onclick="toggleTheme()">🌙 Тёмная тема</button>
+</div>
+
+<!-- ПЛЕЕР -->
+<div id="playerContainer">
+    <video id="mainPlayer" controls preload="auto"></video>
+</div>
+
+<!-- КАСТОМНОЕ POPUP ОКНО -->
+<div id="deleteModal" class="popup-overlay">
+  <div class="popup-box">
+    <h3 style="margin-bottom: 10px;">Подтверждение удаления</h3>
+    <p class="muted" style="margin-bottom: 20px;">Вы действительно хотите удалить этот файл?</p>
+    <div style="display: flex; gap: 10px; justify-content: center;">
+      <button onclick="closeDeleteModal()" style="background: #64748b; padding: 8px 16px;">Отмена</button>
+      <button id="confirmDeleteBtn" style="background: #dc2626; padding: 8px 16px;">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ЭКРАН АВТОРИЗАЦИИ -->
+<div id="authScreen" class="card">
+  <div class="auth-tabs">
+    <div class="auth-tab active" id="tabLoginBtn" onclick="switchAuthTab('login')">Вход</div>
+    <div class="auth-tab" id="tabRegBtn" onclick="switchAuthTab('register')">Регистрация</div>
+  </div>
+  <div id="loginForm">
+    <h3>Авторизация</h3>
+    <input id="loginUser" type="text" placeholder="Никнейм">
+    <input id="loginPass" type="password" placeholder="Пароль">
+    <button onclick="handleLogin()" style="width: 100%;">Войти</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+  <div id="registerForm" style="display: none;">
+    <h3>Регистрация заявки</h3>
+    <p class="muted" style="margin-bottom: 10px;">Примечание: В ФИО должно быть минимум 2 пробела</p>
+    <input id="regUser" type="text" placeholder="Никнейм">
+    <input id="regPass" type="password" placeholder="Пароль">
+    <input id="regFio" type="text" placeholder="ФИО">
+    <button onclick="handleRegister()" style="width: 100%; background: #059669;">Отправить заявку</button>
+    <div class="msg" id="regMsg"></div>
+  </div>
+</div>
+
+<!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
+<div id="appScreen" style="display: none;">
+  <div class="top-header">
+    <h1 id="welcomeTitle">Панель управления</h1>
+    <div>
+      <span id="userInfoBadge" style="margin-right: 15px; font-weight: 600;"></span>
+      <button onclick="logout()" style="background: #64748b; padding: 6px 12px;">Выйти</button>
+    </div>
+  </div>
+
+  <div id="userWorkspace">
+    <div class="card" style="border-color: #8b5cf6; background: rgba(139, 92, 246, 0.05);">
+      <h3>🔍 Умный поиск по лекциям</h3>
+      <div id="videoCheckboxes" class="card" style="max-height: 120px; overflow-y: auto; padding: 6px; margin-bottom: 10px;"></div>
+      <input id="searchQuery" type="text" placeholder="Например: объяснение теоремы Пифагора" onkeypress="if(event.key==='Enter') doSearch()">
+      <button style="background: #8b5cf6;" onclick="doSearch()">Искать по смыслу</button>
+      <div id="searchResults" style="margin-top: 12px;"></div>
+    </div>
+
+    <div class="card">
+      <h3>Ссылка (YouTube)</h3>
+      <input id="url" type="text" placeholder="https://youtube.com/watch?v=...">
+      <button id="btnUrl" onclick="submitUrl()">Распознать по ссылке</button>
+      <div class="msg" id="urlMsg"></div>
+    </div>
+
+    <div class="card">
+      <h3>Файл с диска (MP4, WebM, MP3...)</h3>
+      <input id="file" type="file" accept=".mp4,.webm,.mp3,.wav,.m4a,video/*,audio/*">
+      <button id="btnFile" onclick="submitFile()">Распознать файл</button>
+      <div class="msg" id="fileMsg"></div>
+    </div>
+
+    <div class="card">
+      <h3>Моя история лекций</h3>
+      <ul id="list"><li class="muted">Загрузка...</li></ul>
+    </div>
+  </div>
+
+  <div id="adminWorkspace" style="display: none;">
+    <div class="admin-layout">
+      <div class="admin-sidebar card" style="padding: 10px; height: fit-content;">
+        <button class="sidebar-btn active" onclick="switchAdminTab('requests', this)">📥 Заявки</button>
+        <button class="sidebar-btn" onclick="switchAdminTab('stats', this)">📊 Статистика</button>
+        <button class="sidebar-btn" onclick="switchAdminTab('users', this)">👥 Пользователи</button>
+      </div>
+      <div class="admin-content card" id="adminContentArea"></div>
+    </div>
+  </div>
+</div>
+
+<div id="userDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 1000; overflow-y: auto; padding: 40px 20px; box-sizing: border-box;">
+  <div style="max-width: 900px; margin: 0 auto;">
+    <button onclick="closeUserDetails()" style="margin-bottom: 20px; background: #64748b;">← Назад к списку</button>
+    <div class="card" id="userDetailContent"></div>
+  </div>
+</div>
+
+<script>
+let currentUser = null;
+let adminStatsChart = null;
+let currentAdminTab = 'requests';
+let adminPollingInterval = null;
+let userPollingInterval = null;
+let currentPlayingVideoId = null;
+
+// --- ВИДЕОПЛЕЕР ---
+function playVideo(mediaUrl, videoId) {
+    if (!mediaUrl) {
+        alert("Видеофайл не найден или был удален с сервера.");
+        return;
+    }
+    const container = document.getElementById('playerContainer');
+    const player = document.getElementById('mainPlayer');
+    currentPlayingVideoId = videoId;
+    
+    // Принудительно перезагружаем видео
+    player.src = mediaUrl;
+    container.style.display = 'block';
+    
+    player.play().catch(e => {
+        console.error("Ошибка воспроизведения:", e);
+        alert("Не удалось воспроизвести видео. Возможно, браузер не поддерживает этот формат.");
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function seekToTime(mediaUrl, videoId, startSec) {
+    if (!mediaUrl) {
+        alert("Видеофайл не найден или был удален с сервера.");
+        return false; 
+    }
+
+    const container = document.getElementById('playerContainer');
+    const player = document.getElementById('mainPlayer');
+    currentPlayingVideoId = videoId;
+    
+    player.src = mediaUrl;
+    container.style.display = 'block';
+    
+    player.addEventListener('loadedmetadata', function onLoaded() {
+        player.currentTime = startSec;
+        player.play().catch(e => console.error("Ошибка play:", e));
+        player.removeEventListener('loadedmetadata', onLoaded);
+    });
+    
+    if (player.readyState >= 1) {
+        player.currentTime = startSec;
+        player.play().catch(e => console.error("Ошибка play:", e));
+    }
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return true;
+}
+
+// --- ОСТАЛЬНОЙ КОД ---
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  updateThemeBtnText(savedTheme);
+}
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  updateThemeBtnText(next);
+}
+function updateThemeBtnText(theme) {
+  const btn = document.querySelector('.theme-toggle-btn');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️ Светлая тема' : '🌙 Тёмная тема';
+}
+initTheme();
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const token = localStorage.getItem('jwt_token');
+  if (token) {
+    try {
+      const res = await handleResponse(await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } }));
+      currentUser = res.user;
+      initAppSession();
+    } catch(e) { logout(); }
+  }
+});
+
+function getAuthHeaders() {
+  const token = localStorage.getItem('jwt_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+function switchAuthTab(tab) {
+  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('tabLoginBtn').classList.toggle('active', tab === 'login');
+  document.getElementById('tabRegBtn').classList.toggle('active', tab === 'register');
+}
+
+async function handleResponse(r) {
+  const textData = await r.text();
+  try {
+    const json = JSON.parse(textData);
+    if (!r.ok) throw new Error(json.detail || 'Ошибка сервера');
+    return json;
+  } catch (e) {
+    if (e.name === 'SyntaxError') throw new Error(`Ошибка сервера (${r.status})`);
+    throw e;
+  }
+}
+
+async function handleLogin() {
+  const msg = document.getElementById('loginMsg');
+  msg.textContent = '';
+  try {
+    const res = await handleResponse(await fetch('/api/auth/login', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: document.getElementById('loginUser').value.trim(), password: document.getElementById('loginPass').value.trim()})
+    }));
+    localStorage.setItem('jwt_token', res.token);
+    currentUser = res.user;
+    initAppSession();
+  } catch(e) { msg.style.color = '#dc2626'; msg.textContent = e.message; }
+}
+
+async function handleRegister() {
+  const msg = document.getElementById('regMsg');
+  msg.textContent = '';
+  try {
+    const res = await handleResponse(await fetch('/api/auth/register', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+          username: document.getElementById('regUser').value.trim(), 
+          password: document.getElementById('regPass').value.trim(),
+          fio: document.getElementById('regFio').value.trim()
+      })
+    }));
+    msg.style.color = '#059669'; msg.textContent = res.message;
+    setTimeout(() => switchAuthTab('login'), 2000);
+  } catch(e) { msg.style.color = '#dc2626'; msg.textContent = e.message; }
+}
+
+function logout() {
+  localStorage.removeItem('jwt_token'); currentUser = null;
+  if (adminPollingInterval) clearInterval(adminPollingInterval);
+  if (userPollingInterval) clearInterval(userPollingInterval);
+  document.getElementById('authScreen').style.display = 'block';
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('userDetailModal').style.display = 'none';
+  document.getElementById('playerContainer').style.display = 'none';
+  document.getElementById('mainPlayer').src = '';
+}
+
+function initAppSession() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('userInfoBadge').textContent = `${currentUser.fio} (${currentUser.username})`;
+
+  if (adminPollingInterval) clearInterval(adminPollingInterval);
+  if (userPollingInterval) clearInterval(userPollingInterval);
+
+  if (currentUser.is_admin) {
+    document.getElementById('userWorkspace').style.display = 'none';
+    document.getElementById('adminWorkspace').style.display = 'block';
+    loadAdminRequests();
+    adminPollingInterval = setInterval(() => {
+      if (currentAdminTab === 'requests') loadAdminRequests(true);
+      else if (currentAdminTab === 'users') loadAdminUsers(true);
+    }, 3000);
+  } else {
+    document.getElementById('userWorkspace').style.display = 'block';
+    document.getElementById('adminWorkspace').style.display = 'none';
+    loadList();
+    userPollingInterval = setInterval(() => {
+      let isUserReading = false;
+      document.querySelectorAll('.text-box, .summary-box').forEach(box => {
+        if (box.style.display === 'block') isUserReading = true;
+      });
+      if (!isUserReading) loadList(null, true); 
+    }, 3000);
+  }
+}
+
+/* --- АДМИНКА --- */
+function switchAdminTab(tab, btn) {
+  currentAdminTab = tab;
+  document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (tab === 'requests') loadAdminRequests();
+  else if (tab === 'stats') loadAdminStats('all');
+  else if (tab === 'users') loadAdminUsers();
+}
+async function loadAdminRequests(isBackground = false) {
+  const area = document.getElementById('adminContentArea');
+  if (!isBackground) area.innerHTML = '<h3>Заявки на регистрацию</h3><span class="muted">Загрузка...</span>';
+  try {
+    const reqs = await handleResponse(await fetch('/api/admin/requests', { headers: getAuthHeaders() }));
+    if (!reqs.length) { area.innerHTML = '<h3>Заявки на регистрацию</h3><p class="muted">Новых заявок нет.</p>'; return; }
+    area.innerHTML = `<h3>Заявки на регистрацию</h3><div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+      ${reqs.map(r => `<div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; background: var(--card-bg);">
+        <div><b>${r.username}</b> (${r.fio})<br><span class="muted">Пароль: ${r.password} | Подана: ${new Date(r.created_at).toLocaleString()}</span></div>
+        <div style="display: flex; gap: 8px;"><button onclick="decisionReq('${r.id}', true)" style="background: #16a34a; padding: 6px 14px;">Да</button><button onclick="decisionReq('${r.id}', false)" style="background: #dc2626; padding: 6px 14px;">Нет</button></div>
+      </div>`).join('')}</div>`;
+  } catch(e) { if (!isBackground) area.innerHTML = `<span style="color:red;">Ошибка: ${e.message}</span>`; }
+}
+async function decisionReq(id, approve) {
+  await fetch(`/api/admin/requests/${id}/decision`, { method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({approve}) });
+  loadAdminRequests();
+}
+async function loadAdminStats(filter = 'all') {
+  const area = document.getElementById('adminContentArea');
+  area.innerHTML = `<h3>Статистика системы</h3><div class="filter-bar" style="margin-top: 10px;">
+      <button class="filter-btn ${filter==='day'?'active':''}" onclick="loadAdminStats('day')">День</button>
+      <button class="filter-btn ${filter==='week'?'active':''}" onclick="loadAdminStats('week')">Неделя</button>
+      <button class="filter-btn ${filter==='all'?'active':''}" onclick="loadAdminStats('all')">Всё время</button>
+    </div><div style="height: 320px; position: relative; margin-top: 15px;"><canvas id="statsChart"></canvas></div>`;
+  try {
+    const stats = await handleResponse(await fetch('/api/admin/stats', { headers: getAuthHeaders() }));
+    const now = new Date(); let timeLabels = [], authCounts = [], transCounts = [], urlsCounts = [];
+    if (filter === 'day') {
+      for (let h = 0; h <= Math.max(now.getHours(), 3); h += 2) {
+        timeLabels.push(`${String(h).padStart(2, '0')}:00`);
+        const hourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, 0, 0);
+        const hourEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h + 2, 59, 59);
+        authCounts.push(stats.auths.filter(t => { const d = new Date(t); return d >= hourStart && d <= hourEnd; }).length);
+        transCounts.push(stats.transcriptions.filter(t => { const d = new Date(t); return d >= hourStart && d <= hourEnd; }).length);
+        urlsCounts.push(stats.urls.filter(t => { const d = new Date(t); return d >= hourStart && d <= hourEnd; }).length);
+      }
+    } else {
+      const daysCount = filter === 'week' ? 7 : 14;
+      for (let i = daysCount - 1; i >= 0; i--) {
+        const dTarget = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        timeLabels.push(dTarget.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }));
+        const startInterval = new Date(dTarget.getFullYear(), dTarget.getMonth(), dTarget.getDate(), 0, 0, 0);
+        const endInterval = new Date(dTarget.getFullYear(), dTarget.getMonth(), dTarget.getDate(), 23, 59, 59);
+        authCounts.push(stats.auths.filter(t => { const d = new Date(t); return d >= startInterval && d <= endInterval; }).length);
+        transCounts.push(stats.transcriptions.filter(t => { const d = new Date(t); return d >= startInterval && d <= endInterval; }).length);
+        urlsCounts.push(stats.urls.filter(t => { const d = new Date(t); return d >= startInterval && d <= endInterval; }).length);
+      }
+    }
+    const ctx = document.getElementById('statsChart').getContext('2d');
+    if (adminStatsChart) adminStatsChart.destroy();
+    adminStatsChart = new Chart(ctx, {
+      type: 'line', data: { labels: timeLabels, datasets: [
+          { label: 'Авторизации', data: authCounts, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.15)', borderWidth: 3, tension: 0.3, fill: true },
+          { label: 'Расшифровки лекций', data: transCounts, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.15)', borderWidth: 3, tension: 0.3, fill: true },
+          { label: 'Поданные ссылки', data: urlsCounts, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.15)', borderWidth: 3, tension: 0.3, fill: true }
+      ]}, options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+  } catch(e) { area.innerHTML = `<span style="color:red;">Ошибка: ${e.message}</span>`; }
+}
+async function loadAdminUsers(isBackground = false) {
+  const area = document.getElementById('adminContentArea');
+  if (!isBackground) area.innerHTML = '<h3>Управление пользователями</h3><span class="muted">Загрузка...</span>';
+  try {
+    const users = await handleResponse(await fetch('/api/admin/users', { headers: getAuthHeaders() }));
+    if (!users.length) { area.innerHTML = '<h3>Управление пользователями</h3><p class="muted">Нет пользователей.</p>'; return; }
+    area.innerHTML = `<h3>Управление пользователями</h3><div style="margin-top: 12px; display: flex; flex-direction: column; gap: 12px;">
+      ${users.map(u => `<div class="user-card-layout"><div class="user-info-box">
+        <div class="u-field" title="Никнейм">${u.username}</div><div class="u-field" title="Пароль">••••••••</div><div class="u-field" title="ФИО">${u.fio}</div>
+      </div><div style="display: flex; gap: 8px;"><button onclick='openUserDetails(${JSON.stringify(u)})' style="background: #64748b;">Подробнее</button><button class="block-btn" onclick="blockUser('${u.id}')">ЗАБЛОКИРОВАТЬ</button></div></div>`).join('')}</div>`;
+  } catch(e) { if (!isBackground) area.innerHTML = `<span style="color:red;">Ошибка: ${e.message}</span>`; }
+}
+function openUserDetails(user) {
+  const modal = document.getElementById('userDetailModal');
+  document.getElementById('userDetailContent').innerHTML = `
+    <h2>Информация о пользователе: ${user.fio}</h2>
+    <div style="display: flex; gap: 15px; margin: 15px 0; flex-wrap: wrap;">
+      <div class="card" style="flex: 1; margin: 0;"><b>Никнейм:</b> ${user.username}</div>
+      <div class="card" style="flex: 1; margin: 0;"><b>Пароль:</b> ${user.password}</div>
+      <div class="card" style="flex: 1; margin: 0;"><b>Дата регистрации:</b> ${new Date(user.created_at).toLocaleDateString()}</div>
+    </div>
+    <h3 style="margin-top: 25px;">Все лекции пользователя (${user.lectures.length}):</h3>
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+      ${user.lectures.length === 0 ? '<p class="muted">Нет загруженных лекций.</p>' : user.lectures.map(l => `
+        <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; background: var(--card-bg);">
+          <div style="display: flex; gap: 12px; align-items: center; width: 45%;">
+            ${l.thumbnail ? `<img src="${l.thumbnail}" style="width: 60px; height: 40px; object-fit: cover; border-radius: 6px;">` : '<div style="width:60px;height:40px;background:var(--border-color);border-radius:6px;"></div>'}
+            <span style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${l.original || l.source}</span>
+          </div>
+          <div style="width: 25%; text-align: center; color: var(--text-muted); font-size: 13px;">📅 ${new Date(l.created_at).toLocaleString()}</div>
+          <div style="width: 30%; text-align: right; font-weight: 500;">${l.source === 'file' ? `<span style="color: var(--text-muted);">🔗 файл</span>` : `<a href="${l.display_source}" target="_blank" style="color: #0284c7; text-decoration: none;">🔗 Открыть YouTube</a>`}</div>
+        </div>`).join('')}
+    </div>
+  `;
+  modal.style.display = 'block';
+}
+function closeUserDetails() { document.getElementById('userDetailModal').style.display = 'none'; }
+async function blockUser(id) {
+  if (!confirm('Вы уверены, что хотите заблокировать и удалить этого пользователя?')) return;
+  await fetch(`/api/admin/users/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+  loadAdminUsers();
+}
+
+/* --- ПОЛЬЗОВАТЕЛЬСКИЙ ФУНКЦИОНАЛ --- */
+async function doSearch() {
+  const query = document.getElementById('searchQuery').value.trim();
+  const resultsDiv = document.getElementById('searchResults');
+  if (!query) { resultsDiv.innerHTML = ''; return; }
+  const videoIds = Array.from(document.querySelectorAll('.video-cb:checked')).map(cb => cb.value);
+  resultsDiv.innerHTML = '<span class="status-loader"></span> Ищем по смыслу...';
+  try {
+    const res = await handleResponse(await fetch('/api/search', {
+      method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({query, video_ids: videoIds})
+    }));
+    if (res.length === 0) { resultsDiv.innerHTML = '<div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444; padding: 12px; border-radius: 8px; font-size: 14px;">❌ Здесь нет ответа на ваш вопрос.</div>'; return; }
+    
+    resultsDiv.innerHTML = res.map(item => {
+      let timeHtml = `<span class="time-badge">⏱ ${item.time_str}</span>`;
+      
+      if (item.media_url) {
+          timeHtml = `<button class="time-badge" onclick="seekToTime('${item.media_url}', '${item.video_id}', ${item.start_sec})" title="Перемотать плеер">▶ ${item.time_str}</button>`;
+      } else if (item.watch_url) {
+          timeHtml = `<a href="${item.watch_url}" target="_blank" class="time-badge" title="Открыть на YouTube">▶ ${item.time_str}</a>`;
+      }
+
+      return `
+        <div class="search-result">
+          <div class="badge-group">${timeHtml}<span class="score-badge">Совпадение: ${(item.score * 100).toFixed(1)}%</span></div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;"><b>Из:</b> ${item.video_title}</div>
+          <div style="line-height: 1.4; clear: both; padding-top: 4px;">${item.text}</div>
+        </div>`;
+    }).join('');
+  } catch(e) { resultsDiv.innerHTML = `<span style="color:red;">Ошибка: ${e.message}</span>`; }
+}
+
+async function loadList(highlightId = null, isBackground = false) {
+  try {
+    const items = await handleResponse(await fetch('/api/videos', { headers: getAuthHeaders() }));
+    const checkboxesDiv = document.getElementById('videoCheckboxes');
+    const readyVideos = items.filter(v => v.status === 'ready');
+    
+    if (readyVideos.length === 0) {
+      checkboxesDiv.innerHTML = '<span class="muted">Пока нет готовых роликов</span>';
+    } else {
+      const previouslyChecked = Array.from(document.querySelectorAll('.video-cb:checked')).map(cb => cb.value);
+      checkboxesDiv.innerHTML = readyVideos.map(v => `
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 3px 0; cursor: pointer;">
+            <input type="checkbox" class="video-cb" value="${v.id}" ${previouslyChecked.includes(v.id) ? 'checked' : ''}>
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${v.original || v.source}</span>
+          </label>`).join('');
+    }
+
+    const ul = document.getElementById('list');
+    const openedTexts = [], openedSummaries = [], summaryContents = {};
+    
+    if (isBackground) {
+      items.forEach(v => {
+        const textBox = document.getElementById(`text-${v.id}`);
+        if (textBox && textBox.style.display === 'block') openedTexts.push(v.id);
+        const sumBox = document.getElementById(`summary-${v.id}`);
+        if (sumBox && sumBox.style.display === 'block') { openedSummaries.push(v.id); summaryContents[v.id] = sumBox.innerHTML; }
+      });
+    }
+
+    ul.innerHTML = '';
+    if (!items.length) { ul.innerHTML = '<li class="muted">Пока ничего нет</li>'; return; }
+    
+    for (const v of items) {
+      const li = document.createElement('li');
+      if (v.id === highlightId) { li.classList.add('highlight'); setTimeout(() => li.classList.remove('highlight'), 4000); }
+      
+      let thumbHtml = v.thumbnail ? `<img src="${v.thumbnail}" class="video-thumb" alt="Заставка">` : '<div class="video-thumb"></div>';
+      let deleteBtnHtml = v.source === 'file' ? `<button class="delete-btn" onclick="confirmDeleteVideo('${v.id}')">🗑 Удалить файл</button>` : '';
+      let playBtnHtml = v.media_url ? `<button class="play-btn" onclick="playVideo('${v.media_url}', '${v.id}')">▶ Смотреть</button>` : '';
+
+      let contentHtml = '';
+      if (v.status === 'ready') {
+        contentHtml = `
+          <div class="action-buttons">
+            ${playBtnHtml}
+            <button class="toggle-btn" onclick="toggleText('${v.id}', this)">📖 Текст</button>
+            <button class="summary-btn" onclick="loadSummary('${v.id}', this)">📝 Конспект</button>
+            ${deleteBtnHtml}
+          </div>
+          <div class="text-box" id="text-${v.id}">${v.text}</div>
+          <div class="summary-box" id="summary-${v.id}"></div>`;
+      } else if (v.status === 'error') {
+        contentHtml = `<div class="msg" style="color:#b91c1c;">${v.error}</div>${deleteBtnHtml}`;
+      } else {
+        contentHtml = `<div class="msg" style="color:var(--text-muted);"><span class="status-loader"></span><i>[В процессе: ${v.status}...]</i></div>`;
+      }
+
+      li.innerHTML = `
+        <div class="video-item-flex">
+          ${thumbHtml}
+          <div style="flex-grow: 1; overflow: hidden;">
+            <b style="font-size: 15px;">${v.original || v.source}</b><br>
+            <span class="muted">${v.source} | ${v.method || ''} | ${new Date(v.created_at).toLocaleString()}</span>
+            <div style="margin-top: 6px;">${contentHtml}</div>
+          </div>
+        </div>`;
+      ul.appendChild(li);
+    }
+
+    if (isBackground) {
+      openedTexts.forEach(id => {
+        const box = document.getElementById(`text-${id}`);
+        const btn = box?.previousElementSibling?.querySelector('.toggle-btn');
+        if (box) box.style.display = 'block'; if (btn) btn.textContent = '📖 Скрыть';
+      });
+      openedSummaries.forEach(id => {
+        const box = document.getElementById(`summary-${id}`);
+        const btn = box?.previousElementSibling?.previousElementSibling?.querySelector('.summary-btn');
+        if (box) { box.style.display = 'block'; box.innerHTML = summaryContents[id]; }
+        if (btn) btn.textContent = '📝 Скрыть';
+      });
+    }
+  } catch(e) { document.getElementById('list').innerHTML = `<li class="msg" style="color:#b91c1c;">Ошибка истории: ${e.message}</li>`; }
+}
+
+async function loadSummary(id, btn) {
+  const box = document.getElementById(`summary-${id}`);
+  if (box.style.display === 'block') { box.style.display = 'none'; btn.textContent = '📝 Конспект'; return; }
+  box.style.display = 'block'; box.innerHTML = '<span class="status-loader"></span> Генерируем конспект с помощью ИИ...'; btn.textContent = '📝 Скрыть';
+  try {
+    const res = await handleResponse(await fetch(`/api/summary/${id}`, { method: 'POST', headers: getAuthHeaders() }));
+    box.innerHTML = marked.parse(res.summary);
+  } catch(e) { box.innerHTML = `<span style="color:red;">Ошибка: ${e.message}</span>`; }
+}
+
+function toggleText(id, btn) {
+  const box = document.getElementById(`text-${id}`);
+  if (box.style.display === 'block') { box.style.display = 'none'; btn.textContent = '📖 Текст'; }
+  else { box.style.display = 'block'; btn.textContent = '📖 Скрыть'; }
+}
+
+let videoToDeleteId = null;
+function confirmDeleteVideo(id) { videoToDeleteId = id; document.getElementById('deleteModal').style.display = 'flex'; }
+function closeDeleteModal() { videoToDeleteId = null; document.getElementById('deleteModal').style.display = 'none'; }
+document.addEventListener('DOMContentLoaded', () => {
+  const confirmBtn = document.getElementById('confirmDeleteBtn');
+  if (confirmBtn) {
+    confirmBtn.onclick = async () => {
+      if (!videoToDeleteId) return;
+      const idToDel = videoToDeleteId; closeDeleteModal();
+      try {
+        await handleResponse(await fetch(`/api/videos/${idToDel}`, { method: 'DELETE', headers: getAuthHeaders() }));
+        loadList();
+      } catch(e) { alert(`Ошибка при удалении: ${e.message}`); }
+    };
+  }
+});
+
+async function submitUrl() {
+  const input = document.getElementById('url'), msg = document.getElementById('urlMsg'), btn = document.getElementById('btnUrl');
+  msg.textContent = ''; if (!input.value.trim()) return;
+  btn.disabled = true; btn.textContent = 'Отправка...';
+  try {
+    const res = await handleResponse(await fetch('/api/url', { method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({url: input.value.trim()}) }));
+    input.value = ''; btn.disabled = false; btn.textContent = 'Распознать по ссылке'; loadList(res.id);
+  } catch(e) { msg.style.color = '#dc2626'; msg.textContent = e.message; btn.disabled = false; btn.textContent = 'Распознать по ссылке'; }
+}
+
+async function submitFile() {
+  const f = document.getElementById('file').files[0], msg = document.getElementById('fileMsg'), btn = document.getElementById('btnFile');
+  msg.textContent = ''; if (!f) return;
+  const fd = new FormData(); fd.append('file', f);
+  btn.disabled = true; btn.textContent = 'Загрузка...';
+  try {
+    const res = await handleResponse(await fetch('/api/upload', { method: 'POST', headers: getAuthHeaders(), body: fd }));
+    document.getElementById('file').value = ''; btn.disabled = false; btn.textContent = 'Распознать файл'; loadList(res.id);
+  } catch(e) { msg.style.color = '#dc2626'; msg.textContent = e.message; btn.disabled = false; btn.textContent = 'Распознать файл'; }
+}
+</script>
+</body>
+</html>
